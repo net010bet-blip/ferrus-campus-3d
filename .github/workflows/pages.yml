@@ -25,6 +25,8 @@ jobs:
         mkdir -p dist/src dist/vendor dist/models
         cp index.html dist/index.html
         cp .nojekyll dist/.nojekyll
+        mkdir -p dist/pinball
+        cp -R pinball/. dist/pinball/
         cp -R src/. dist/src/
         cp node_modules/playcanvas/build/playcanvas.mjs dist/vendor/playcanvas.mjs
         curl --retry 3 -L --fail 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/CesiumMan/glTF-Binary/CesiumMan.glb' -o dist/models/CesiumMan.glb || echo 'Modelo humano local não disponível.'
