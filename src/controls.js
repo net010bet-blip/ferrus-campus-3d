@@ -1,0 +1,20 @@
+import {ZONES} from './config.js';
+const DEG=Math.PI/180;
+const clampCtl=(v,a,b)=>Math.max(a,Math.min(b,v));
+export class PlayerController{
+ constructor(canvas,ui){this.canvas=canvas;this.ui=ui;this.x=-1;this.z=-29;this.yaw=180;this.pitch=-3;this.keys=new Set();this.moveX=0;this.moveY=0;this.isMobile=matchMedia('(pointer:coarse)').matches;this.pointerLocked=false;this.enabled=true;this.joy={active:false,id:null,startX:0,startY:0};this.init()}
+ init(){window.addEventListener('keydown',e=>{if(e.repeat&&['KeyE','KeyM','KeyT'].includes(e.code))return;if(['KeyW','KeyS','KeyA','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','ShiftLeft','Space'].includes(e.code))e.preventDefault();this.keys.add(e.code);if(e.code==='KeyE')this.ui.interact();if(e.code==='KeyM')this.ui.openMap();if(e.code==='KeyT')this.ui.openDashboard();if(e.code==='Escape')this.ui.closePanel()});window.addEventListener('keyup',e=>this.keys.delete(e.code));window.addEventListener('blur',()=>this.keys.clear());
+ this.canvas.addEventListener('click',()=>{if(!this.isMobile&&!this.ui.modalOpen){this.canvas.requestPointerLock?.().catch(()=>{})}});
+ document.addEventListener('pointerlockchange',()=>{this.pointerLocked=document.pointerLockElement===this.canvas;});
+ document.addEventListener('mousemove',e=>{if(this.pointerLocked&&!this.ui.modalOpen){this.yaw-=e.movementX*.095;this.pitch=clampCtl(this.pitch-e.movementY*.085,-75,75)}});
+ const pad=document.getElementById('pad');const dot=document.getElementById('stick');
+ pad.addEventListener('pointerdown',e=>{e.preventDefault();this.joy.active=true;this.joy.id=e.pointerId;this.joy.startX=e.clientX;this.joy.startY=e.clientY;pad.setPointerCapture(e.pointerId);});
+ pad.addEventListener('pointermove',e=>{if(!this.joy.active||e.pointerId!==this.joy.id)return;this.moveX=clampCtl((e.clientX-this.joy.startX)/52,-1,1);this.moveY=clampCtl((e.clientY-this.joy.startY)/52,-1,1);dot.style.transform=`translate(${this.moveX*35}px,${this.moveY*35}px)`;});
+ const release=()=>{this.joy.active=false;this.moveX=this.moveY=0;dot.style.transform='translate(0,0)'};pad.addEventListener('pointerup',release);pad.addEventListener('pointercancel',release);
+ let drag=false,x=0,y=0;this.canvas.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'||this.ui.modalOpen)return;drag=true;x=e.clientX;y=e.clientY;this.canvas.setPointerCapture(e.pointerId)});this.canvas.addEventListener('pointermove',e=>{if(!drag||e.pointerType==='mouse'||this.ui.modalOpen)return;this.yaw-=(e.clientX-x)*.17;this.pitch=clampCtl(this.pitch-(e.clientY-y)*.14,-75,75);x=e.clientX;y=e.clientY});this.canvas.addEventListener('pointerup',()=>drag=false);this.canvas.addEventListener('pointercancel',()=>drag=false);
+ document.getElementById('moveRun').addEventListener('pointerdown',()=>this.keys.add('ShiftLeft'));['pointerup','pointercancel','pointerleave'].forEach(e=>document.getElementById('moveRun').addEventListener(e,()=>this.keys.delete('ShiftLeft')));
+ }
+ tick(dt,camera,pc){if(!this.ui.modalOpen){const fw=(this.keys.has('KeyW')||this.keys.has('ArrowUp')?1:0)-(this.keys.has('KeyS')||this.keys.has('ArrowDown')?1:0)-this.moveY;const side=(this.keys.has('KeyD')||this.keys.has('ArrowRight')?1:0)-(this.keys.has('KeyA')||this.keys.has('ArrowLeft')?1:0)+this.moveX;const mag=Math.max(1,Math.hypot(fw,side)),speed=this.keys.has('ShiftLeft')?8.0:4.25,a=this.yaw*DEG;this.x+=(-Math.sin(a)*fw+Math.cos(a)*side)*dt*speed/mag;this.z+=(-Math.cos(a)*fw-Math.sin(a)*side)*dt*speed/mag;this.x=clampCtl(this.x,-108,125);this.z=clampCtl(this.z,-45,180)}camera.setPosition(this.x,1.80,this.z);camera.setEulerAngles(-this.pitch,this.yaw,0)}
+ nearest(){let best=null,dist=Infinity;for(const z of ZONES){let d=Math.hypot(z.x-this.x,z.z-this.z);if(d<dist){dist=d;best=z}}return {zone:best,distance:dist}}
+ teleport(id,sim){const z=ZONES.find(x=>x.id===id);if(!z)return;const meters=Math.hypot(z.x-this.x,z.z-this.z);this.x=z.x;this.z=z.z-5.5;this.yaw=180;sim.advance(meters/34);this.ui.toast(`Transporte interno: ${z.name} · deslocamento registrado.`)}
+}

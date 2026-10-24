@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import {IndustrialSimulation} from '../src/simulation.js';
+import {ZONES} from '../src/config.js';
+test('Campus has exactly 30 unique, linked zones',()=>{assert.equal(ZONES.length,30);assert.equal(new Set(ZONES.map(x=>x.id)).size,30);assert.ok(ZONES.some(z=>z.id==='finance'));assert.ok(ZONES.some(z=>z.id==='metro'));});
+test('Same seed produces deterministic machinery and hazards',()=>{let a=new IndustrialSimulation(12345),b=new IndustrialSimulation(12345);a.advance(75);b.advance(75);assert.deepEqual(a.events.map(e=>[e.type,e.zone,e.cause]),b.events.map(e=>[e.type,e.zone,e.cause]));assert.notEqual(a.machine[0].wear,.10);});
+test('Different seeds generate differing event histories',()=>{let a=new IndustrialSimulation(5412),b=new IndustrialSimulation(99992);a.advance(63);b.advance(63);assert.notDeepEqual(a.events.map(e=>e.type),b.events.map(e=>e.type));});
+test('Cannot release uninspected lots',()=>{let s=new IndustrialSimulation(2),l=s.lots[0],r=s.release(l.id);assert.equal(r.ok,false);assert.equal(l.status,'em análise');});
+test('Inspection logs five physical dimension readings',()=>{let s=new IndustrialSimulation(2),l=s.lots[0];let r=s.inspect(l.id);assert.equal(l.samples.length,5);assert.ok(r.includes('5 peças'));});
+test('Open nonconformity forces containment before correction',()=>{let s=new IndustrialSimulation(21);let e=s.generateHazard();assert.equal(s.solve(e.id,e.cause).ok,false);assert.equal(s.contain(e.id),true);assert.equal(s.getLot(e.lotId).status,'bloqueado');assert.equal(s.solve(e.id,e.cause).ok,false);s.analyze(e.id);let r=s.solve(e.id,e.cause);assert.equal(r.ok,true);assert.equal(e.status,'encerrado');});
+test('Incorrect root cause loses funds and does not close RNC',()=>{let s=new IndustrialSimulation(15),e=s.generateHazard();s.contain(e.id);s.analyze(e.id);const old=s.money;const wrong=e.cause==='setup incorreto'?'falha de lubrificação':'setup incorreto';let r=s.solve(e.id,wrong);assert.equal(r.ok,false);assert.ok(s.money<old);assert.equal(e.status,'aberto');});
+test('Administrative spending changes causal risk parameters',()=>{let s=new IndustrialSimulation(4),q=s.supplierQuality,b=s.money;let r=s.spend('suppliers');assert.equal(r.ok,true);assert.ok(s.supplierQuality>q);assert.ok(s.money<b);});
+test('Machine wear rises and production continues autonomously',()=>{let s=new IndustrialSimulation(222);const w=s.machine[0].wear;s.advance(33);assert.ok(s.produced>100);assert.ok(s.machine[0].wear>w);assert.ok(s.minute>7*60+20);});
+
+test('Risky exceptional release may cause a customer complaint after stochastic delay',()=>{let s=new IndustrialSimulation(2);let l=s.lots[0];assert.equal(s.forceRelease(l.id).ok,true);assert.equal(l.status,'liberado com desvio');assert.equal(s.pendingComplaints.length,1);const due=s.pendingComplaints[0].due;s.advance(due-s.minute+2);assert.equal(s.pendingComplaints.length,0);assert.ok(s.events.some(e=>e.type==='customer')||s.log.some(e=>e.message.includes('acompanhamento pós-expedição')));});
