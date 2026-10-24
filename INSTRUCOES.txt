@@ -1,0 +1,39 @@
+# FERRO CAMPUS 3D — Reconstrução técnica (2026)
+
+Simulador de controle da qualidade para navegador com **30 setores**, produção contínua, falhas condicionais probabilísticas, RNC, inspeção de 5 peças, liberação, segregação, manutenção, RH, compras, administração, logística e finanças.
+
+## Opção 1 — abrir imediatamente
+
+Abra `FERRO_JOGO_COMPLETO_OFFLINE.html` (arquivo distribuído separadamente). Inclui todos os scripts de lógica dentro do HTML. Se WebGL/CDN forem bloqueados, o modo de compatibilidade 3D abre automaticamente. **Esse modo não tem a qualidade gráfica de um jogo comercial AAA.**
+
+## Opção 2 — GitHub Pages (recomendada)
+
+1. Crie um repositório público no GitHub.
+2. Faça upload de **todo o conteúdo deste ZIP**, incluindo o diretório oculto `.github` (no GitHub, é necessário preservá-lo).
+3. Na aba `Settings > Pages > Build and deployment`, escolha **GitHub Actions**.
+4. Na aba `Actions`, a execução `Publicar FERRO 3D` instala PlayCanvas 2.23.0 e publica a página via HTTPS.
+5. O workflow copia o PlayCanvas para `vendor/playcanvas.mjs`; o jogo tenta carregá-lo **localmente primeiro**, sem precisar de CDN. Se houver falha, tenta dois CDNs oficiais/espelhos.
+6. O workflow tenta copiar o humano 3D glTF licenciado (`CesiumMan.glb`) para `models/`; se falhar, há modelos simplificados internos.
+
+**NÃO** usar apenas branch/main root para a versão offline da biblioteca: o motor `vendor/playcanvas.mjs` é criado durante o workflow; sem workflow, dependemos das cópias CDN.
+
+### Controles
+
+WASD movimentar, mouse para olhar, Shift correr, E interagir, M mapa, T tablet. No celular: joystick virtual e arraste do lado direito para olhar.
+
+### Regras implementadas
+
+- A fábrica opera sem fases predefinidas.
+- Máquinas desgastam, aquecem e podem falhar; novos eventos surgem probabilisticamente conforme condições da planta.
+- RNC exige segregação e coleta de evidência para encerramento adequado.
+- Liberar lote sem cinco medições documentadas é proibido tecnicamente; existe liberação excepcional de alto risco com probabilidade de reclamação.
+- Administração muda desempenho de fornecedores, estoque, orçamento, treinamento e qualidade.
+
+### Sobre os gráficos e limitações
+
+A cena usa geometrias construídas no PlayCanvas e materiais PBR; **não contém ainda uma biblioteca de ativos industriais profissionais de alto detalhamento**. O modo WebGL2/WebGPU não pôde ser testado visualmente no ambiente de criação. A captura publicada com este projeto é da alternativa de compatibilidade. Não alegamos qualidade fotorealista/Unreal/Critical Strike comprovada.
+
+### Créditos
+
+CesiumMan © Cesium, licença Creative Commons Attribution 4.0, distribuição e metadados em [Khronos glTF Sample Models](https://github.com/KhronosGroup/glTF-Sample-Models/tree/master/2.0/CesiumMan).
+PlayCanvas Engine © PlayCanvas Ltd., licença MIT. O download da biblioteca pelo workflow deve preservar sua licença.
